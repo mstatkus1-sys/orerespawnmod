@@ -1,5 +1,6 @@
 package com.example.orerespawn;
 
+import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -30,7 +31,7 @@ public class OreRespawn {
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::onConfig);
     }
 
-    private void onConfig(ModConfig.ModConfigEvent event) {}
+     private void onConfig(ModConfigEvent event) {}
 
     @SubscribeEvent
     public void onBlockBreak(BlockEvent.BreakEvent event) {
