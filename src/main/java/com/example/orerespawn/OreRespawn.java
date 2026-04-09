@@ -48,7 +48,7 @@ public class OreRespawn {
         }
 
         BlockPos pos = event.getPos();
-        Level level = event.getLevel().getRawLevel();
+        Level level = (Level) event.getLevel();
         if (!(level instanceof ServerLevel serverLevel)) return;
 
         int delayTicks = getRespawnTicks(state);
