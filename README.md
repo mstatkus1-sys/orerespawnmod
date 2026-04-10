@@ -8,8 +8,8 @@ A Minecraft Forge mod for **1.19.4** that makes ores respawn automatically after
 
 - Minecraft 1.19.4
 - Forge 45.2.0 or higher
-- Java 17
-- Server-side only — players do not need the mod installed
+- Java 17 or higher
+- Server-side and client-side — players do not need the mod installed if playing on a server with the mod already installed
 
 ---
 
@@ -17,7 +17,6 @@ A Minecraft Forge mod for **1.19.4** that makes ores respawn automatically after
 
 1. Download the latest `OreRespawn-1.19.4.jar` from the [Releases](../../releases) page
 2. Place the `.jar` file into your server's `mods/` folder
-3. Restart the server
 
 The mod will generate its config files automatically on first run.
 
@@ -54,13 +53,7 @@ Displays all available commands and valid ore names in chat.
 ### `/orerespawn place <ore>`
 Replaces the block you are looking at with the specified ore and registers it as a permanent respawn node. When a player mines it, it will respawn after the configured delay. The position is saved and survives server restarts.
 
-Look directly at a block, then run the command:
-
-```
-/orerespawn place minecraft:diamond_ore
-/orerespawn place minecraft:deepslate_iron_ore
-/orerespawn place minecraft:ancient_debris
-```
+---
 
 **Valid ore names:**
 
@@ -119,7 +112,7 @@ Both files are human-readable and can be edited manually while the server is off
 
 ## Building from Source
 
-Requires Java 17 and Gradle 7.6.
+Requires Java 17 or higher and Gradle 7.6.
 
 ```bash
 git clone https://github.com/your-username/orerespawnmod.git
@@ -132,5 +125,4 @@ The compiled `.jar` will be output to `build/libs/`.
 ---
 
 ## License
-
-MIT
+This project is licensed under the [MIT License](LICENSE).
