@@ -1,34 +1,31 @@
 # OreRespawn
 
-A Minecraft Forge mod for **1.19.4** that makes ores respawn after being mined — just like resource nodes in Rust. When a player breaks an ore, a timer starts and the ore block comes back automatically at the same location. Server owners can place custom respawn nodes and configure how long each ore takes to come back.
+A Minecraft Forge mod for **1.19.4** that makes ores respawn automatically after being mined. When an ore is broken, a configurable timer starts and the block restores itself at the exact same position. Server operators have full control over respawn times and can manually register custom respawn nodes anywhere in the world.
 
 ---
 
-## Features
+## Requirements
 
-- All vanilla ores respawn automatically after being mined
-- Respawn timers are configurable per ore type in-game
-- Player-placed ore blocks are **never** treated as respawn nodes — only natural or op-placed ores respawn
-- Server operators can manually place respawn nodes anywhere using a command
-- All settings and registered positions persist across server restarts
-- Nearby players receive a chat notification when an ore respawns close to them
+- Minecraft 1.19.4
+- Forge 45.2.0 or higher
+- Java 17
+- Server-side only — players do not need the mod installed
 
 ---
 
 ## Installation
 
-1. Make sure you have **Forge 1.19.4** installed on your server
-2. Download the latest `OreRespawn-1.19.4.jar` from the [Actions tab](../../actions) (click the latest successful build, then download the artifact)
-3. Drop the `.jar` into your server's `mods/` folder
-4. Restart the server
+1. Download the latest `OreRespawn-1.19.4.jar` from the [Releases](../../releases) page
+2. Place the `.jar` file into your server's `mods/` folder
+3. Restart the server
 
-> If you are using Aternos: go to **Files → mods/** and upload the `.jar` there, then restart.
+The mod will generate its config files automatically on first run.
 
 ---
 
 ## Default Respawn Times
 
-| Ore | Respawn Time |
+| Ore | Default Time |
 |-----|-------------|
 | Coal ore / Deepslate coal ore | 2 minutes |
 | Copper ore / Deepslate copper ore | 4 minutes |
@@ -39,39 +36,33 @@ A Minecraft Forge mod for **1.19.4** that makes ores respawn after being mined �
 | Diamond ore / Deepslate diamond ore | 10 minutes |
 | Emerald ore / Deepslate emerald ore | 10 minutes |
 
-All timers can be changed in-game using `/orerespawn settime` — see commands below.
+All timers are adjustable per ore type using `/orerespawn settime`.
 
 ---
 
 ## Commands
 
-All commands require **operator level 2** or higher.
+All commands require operator level 2 or higher.
 
 ---
 
 ### `/orehelp`
-Shows all available commands and a list of ore names directly in chat.
-
-```
-/orehelp
-```
+Displays all available commands and valid ore names in chat.
 
 ---
 
 ### `/orerespawn place <ore>`
+Replaces the block you are looking at with the specified ore and registers it as a permanent respawn node. When a player mines it, it will respawn after the configured delay. The position is saved and survives server restarts.
 
-Places a respawning ore node at the block you are looking at. The block you are looking at will be replaced with the ore you specify. When a player mines it, it will respawn after the configured delay.
-
-**Usage:** Look directly at any block (stone, dirt, air, anything), then run the command.
+Look directly at a block, then run the command:
 
 ```
 /orerespawn place minecraft:diamond_ore
-/orerespawn place minecraft:deepslate_diamond_ore
-/orerespawn place minecraft:coal_ore
+/orerespawn place minecraft:deepslate_iron_ore
 /orerespawn place minecraft:ancient_debris
 ```
 
-**Full list of valid ore names:**
+**Valid ore names:**
 
 ```
 minecraft:coal_ore                  minecraft:deepslate_coal_ore
@@ -90,75 +81,56 @@ minecraft:nether_quartz_ore
 ---
 
 ### `/orerespawn settime <ore> <seconds>`
-
-Changes how long a specific ore takes to respawn. The value is in **seconds**. The change saves immediately and persists across restarts.
+Sets the respawn delay for a specific ore type in seconds. The change applies immediately and persists across restarts.
 
 ```
 /orerespawn settime diamond_ore 300
 /orerespawn settime coal_ore 60
 /orerespawn settime ancient_debris 1800
-/orerespawn settime deepslate_iron_ore 120
 ```
 
-> Note: use the ore name **without** `minecraft:` for this command.
+> Use the ore name without the `minecraft:` prefix for this command.
 
 ---
 
-## How Player Protection Works
+## Player Protection
 
-If a player picks up an ore block and places it somewhere (for example in their base), that block is flagged as player-placed. If they mine it, it will **not** respawn — it behaves like a normal block.
+Ore blocks placed by players are tracked and excluded from the respawn system. If a player places an ore block and later mines it, it will behave like any normal block and will not respawn. Only the following ore sources are eligible to respawn:
 
-Only the following ore sources will respawn:
 - Naturally generated ores in the world
-- Blocks placed by an operator using `/orerespawn place`
+- Blocks manually registered by an operator via `/orerespawn place`
 
-This prevents players from farming infinite ores by placing and re-mining them.
-
----
-
-## Config Files
-
-The mod automatically creates two files in your server's `config/` folder on first use:
-
-| File | Contents |
-|------|----------|
-| `config/orerespawn_registered.txt` | Coordinates of all op-placed respawn nodes |
-| `config/orerespawn_times.txt` | Custom respawn times set via `/orerespawn settime` |
-
-You can edit these files manually if needed. Each line in `orerespawn_registered.txt` is `x,y,z` and each line in `orerespawn_times.txt` is `ore_name=seconds`.
+This prevents players from exploiting the system by placing and re-mining ore blocks.
 
 ---
 
-## Compatibility
+## Configuration Files
 
-| | |
-|---|---|
-| Minecraft version | 1.19.4 |
-| Mod loader | Forge 45.2.0+ |
-| Server side only | Yes — clients do not need the mod installed |
-| Singleplayer | Works, but commands require cheats enabled |
+The mod stores its data in two plain text files inside the server's `config/` directory, created automatically on first use.
+
+| File | Description |
+|------|-------------|
+| `config/orerespawn_registered.txt` | Coordinates of all operator-registered respawn nodes, one entry per line in `x,y,z` format |
+| `config/orerespawn_times.txt` | Custom respawn delays set via the command, one entry per line in `ore_name=seconds` format |
+
+Both files are human-readable and can be edited manually while the server is offline.
 
 ---
 
 ## Building from Source
 
-This repo uses GitHub Actions to build automatically. Every push to `main` compiles the mod and uploads the `.jar` as a build artifact.
-
-To download the latest build:
-1. Go to the **Actions** tab in this repo
-2. Click the most recent successful workflow run (green checkmark)
-3. Scroll down to **Artifacts** and download `OreRespawn-1.19.4`
-
-To build locally you will need Java 17 and run:
+Requires Java 17 and Gradle 7.6.
 
 ```bash
+git clone https://github.com/your-username/orerespawnmod.git
+cd orerespawnmod
 ./gradlew build
 ```
 
-The output `.jar` will be at `build/libs/`.
+The compiled `.jar` will be output to `build/libs/`.
 
 ---
 
 ## License
 
-MIT — do whatever you want with it.
+MIT
