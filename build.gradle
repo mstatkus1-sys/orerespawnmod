@@ -3,7 +3,7 @@ plugins {
     id 'net.minecraftforge.gradle' version '5.1.+'
 }
 
-version = '1.0.0'
+version = '1.0.5'
 group = 'com.example.orerespawn'
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
