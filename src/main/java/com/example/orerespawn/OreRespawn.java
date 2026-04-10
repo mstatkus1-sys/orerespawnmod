@@ -5,37 +5,30 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.commands.arguments.blocks.BlockStateArgument;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.io.*;
 import java.nio.file.*;
 import java.util.stream.Collectors;
-import java.util.List;
-import net.minecraft.commands.arguments.StringRepresentableArgument;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
-import com.mojang.brigadier.arguments.StringArgumentType;
-import java.util.HashMap;
-import java.util.Map;
 
 @Mod("orerespawn")
 public class OreRespawn {
@@ -44,9 +37,9 @@ public class OreRespawn {
     private static final Map<BlockPos, BlockState> pendingRespawns = new HashMap<>();
     private static final Set<BlockPos> playerPlaced = new HashSet<>();
     private static final Set<BlockPos> opRegistered = new HashSet<>();
+    private static final Map<String, Integer> customTimes = new HashMap<>();
     private static Path saveFile;
     private static Path timesFile;
-    private static final Map<String, Integer> customTimes = new HashMap<>();
 
     public OreRespawn() {
         MinecraftForge.EVENT_BUS.register(this);
@@ -56,9 +49,14 @@ public class OreRespawn {
         loadOpRegistered();
         loadCustomTimes();
     }
+
     private void onConfig(ModConfigEvent event) {}
 
-@SubscribeEvent
+    // -----------------------------------------------------------------------
+    // Track player-placed ores
+    // -----------------------------------------------------------------------
+
+    @SubscribeEvent
     public void onBlockPlace(BlockEvent.EntityPlaceEvent event) {
         BlockState state = event.getPlacedBlock();
         if (!isTrackedOre(state)) return;
@@ -66,6 +64,10 @@ public class OreRespawn {
         if (opRegistered.contains(pos)) return;
         playerPlaced.add(pos);
     }
+
+    // -----------------------------------------------------------------------
+    // Commands
+    // -----------------------------------------------------------------------
 
     @SubscribeEvent
     public void onRegisterCommands(RegisterCommandsEvent event) {
@@ -118,7 +120,6 @@ public class OreRespawn {
                     )
                 )
         );
-);
 
         event.getDispatcher().register(
             Commands.literal("orehelp")
@@ -147,8 +148,14 @@ public class OreRespawn {
         );
     }
 
+    // -----------------------------------------------------------------------
+    // Block break — core respawn logic
+    // -----------------------------------------------------------------------
+
     @SubscribeEvent
     public void onBlockBreak(BlockEvent.BreakEvent event) {
+        BlockState state = event.getState();
+        if (!isTrackedOre(state)) return;
 
         BlockPos pos = event.getPos();
         Level level = (Level) event.getLevel();
@@ -165,10 +172,12 @@ public class OreRespawn {
         serverLevel.getServer().execute(() ->
             scheduleRespawn(serverLevel, pos, state, delayTicks)
         );
+    }
+
     private void scheduleRespawn(ServerLevel level, BlockPos pos, BlockState state, int tickDelay) {
         new Thread(() -> {
             try {
-                Thread.sleep(tickDelay * 50L); // ticks to ms
+                Thread.sleep(tickDelay * 50L);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return;
@@ -183,7 +192,11 @@ public class OreRespawn {
         }).start();
     }
 
-private boolean isTrackedOre(BlockState state) {
+    // -----------------------------------------------------------------------
+    // Helpers
+    // -----------------------------------------------------------------------
+
+    private boolean isTrackedOre(BlockState state) {
         return state.is(BlockTags.COAL_ORES)
             || state.is(BlockTags.IRON_ORES)
             || state.is(BlockTags.COPPER_ORES)
@@ -194,32 +207,20 @@ private boolean isTrackedOre(BlockState state) {
             || state.is(BlockTags.EMERALD_ORES);
     }
 
-private void saveCustomTimes() {
-        try {
-            Files.createDirectories(timesFile.getParent());
-            List<String> lines = customTimes.entrySet().stream()
-                .map(e -> e.getKey() + "=" + e.getValue())
-                .collect(Collectors.toList());
-            Files.write(timesFile, lines);
-        } catch (IOException e) {
-            LOGGER.error("Failed to save custom respawn times", e);
-        }
+    private int getRespawnTicks(BlockState state) {
+        String name = net.minecraft.core.registries.BuiltInRegistries.BLOCK
+            .getKey(state.getBlock()).getPath();
+        if (customTimes.containsKey(name)) return customTimes.get(name) * 20;
+        if (state.is(BlockTags.DIAMOND_ORES) || state.is(BlockTags.EMERALD_ORES)) return 12000;
+        if (state.is(BlockTags.GOLD_ORES)    || state.is(BlockTags.LAPIS_ORES))   return 7200;
+        if (state.is(BlockTags.IRON_ORES)    || state.is(BlockTags.COPPER_ORES))  return 4800;
+        if (state.is(BlockTags.REDSTONE_ORES))                                     return 6000;
+        return 2400;
     }
 
-    private void loadCustomTimes() {
-        if (!Files.exists(timesFile)) return;
-        try {
-            Files.readAllLines(timesFile).forEach(line -> {
-                String[] parts = line.split("=");
-                if (parts.length == 2) {
-                    customTimes.put(parts[0].trim(), Integer.parseInt(parts[1].trim()));
-                }
-            });
-            LOGGER.info("Loaded {} custom respawn times", customTimes.size());
-        } catch (IOException e) {
-            LOGGER.error("Failed to load custom respawn times", e);
-        }
-    }
+    // -----------------------------------------------------------------------
+    // Persistence
+    // -----------------------------------------------------------------------
 
     private void saveOpRegistered() {
         try {
@@ -252,13 +253,30 @@ private void saveCustomTimes() {
         }
     }
 
-private int getRespawnTicks(BlockState state) {
-        String name = net.minecraft.core.registries.BuiltInRegistries.BLOCK
-            .getKey(state.getBlock()).getPath();
-        if (customTimes.containsKey(name)) return customTimes.get(name) * 20;
-        if (state.is(BlockTags.DIAMOND_ORES) || state.is(BlockTags.EMERALD_ORES)) return 12000;
-        if (state.is(BlockTags.GOLD_ORES)    || state.is(BlockTags.LAPIS_ORES))   return 7200;
-        if (state.is(BlockTags.IRON_ORES)    || state.is(BlockTags.COPPER_ORES))  return 4800;
-        if (state.is(BlockTags.REDSTONE_ORES))                                     return 6000;
-        return 2400;
+    private void saveCustomTimes() {
+        try {
+            Files.createDirectories(timesFile.getParent());
+            List<String> lines = customTimes.entrySet().stream()
+                .map(e -> e.getKey() + "=" + e.getValue())
+                .collect(Collectors.toList());
+            Files.write(timesFile, lines);
+        } catch (IOException e) {
+            LOGGER.error("Failed to save custom respawn times", e);
+        }
     }
+
+    private void loadCustomTimes() {
+        if (!Files.exists(timesFile)) return;
+        try {
+            Files.readAllLines(timesFile).forEach(line -> {
+                String[] parts = line.split("=");
+                if (parts.length == 2) {
+                    customTimes.put(parts[0].trim(), Integer.parseInt(parts[1].trim()));
+                }
+            });
+            LOGGER.info("Loaded {} custom respawn times", customTimes.size());
+        } catch (IOException e) {
+            LOGGER.error("Failed to load custom respawn times", e);
+        }
+    }
+}
