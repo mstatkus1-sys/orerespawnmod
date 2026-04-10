@@ -92,7 +92,7 @@ public class OreRespawn {
                     )
                 )
                 .then(Commands.literal("place")
-                    .then(BlockStateArgument.block(event.getBuildContext())
+                    .then(Commands.argument("block", BlockStateArgument.block(event.getBuildContext()))
                         .executes(ctx -> {
                             var src = ctx.getSource();
                             var player = src.getPlayerOrException();
